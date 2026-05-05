@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Semanas Alternadas</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
+<style>
+/* ── Reset & Variables ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --pri:#6C63FF;--pri-d:#5A52D5;--pri-l:#8B85FF;
+  --yes:#10B981;--yes-bg:#D1FAE5;--yes-border:#6EE7B7;
+  --no:#F59E0B;--no-bg:#FEF3C7;--no-border:#FCD34D;
+  --bg:#F0F2F5;--card:#FFFFFF;--txt:#1F2937;--txt2:#6B7280;--txt3:#9CA3AF;
+  --border:#E5E7EB;--radius:16px;--shadow:0 4px 24px rgba(0,0,0,.06);
+  --font:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+html{font-size:16px;scroll-behavior:smooth}
+body{font-family:var(--font);background:var(--bg);color:var(--txt);min-height:100vh;padding-bottom:2rem}
+
+/* ── Header ── */
+.header{background:linear-gradient(135deg,var(--pri),var(--pri-d));color:#fff;text-align:center;padding:2rem 1rem 3rem;position:relative;overflow:hidden}
+.header::after{content:'';position:absolute;bottom:-2px;left:0;right:0;height:40px;background:var(--bg);border-radius:50% 50% 0 0}
+.header h1{font-size:1.6rem;font-weight:700;margin-bottom:.25rem}
+.header p{opacity:.85;font-size:.9rem}
+.header-icon{font-size:2.5rem;margin-bottom:.5rem;display:block}
+
+/* ── Container ── */
+.container{max-width:520px;margin:0 auto;padding:0 1rem}
+
+/* ── Status Card ── */
+.status-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.75rem;margin-top:-1.5rem;position:relative;text-align:center;border:2px solid transparent;transition:border-color .3s}
+.status-card.with{border-color:var(--yes-border);background:linear-gradient(135deg,#fff,var(--yes-bg))}
+.status-card.without{border-color:var(--no-border);background:linear-gradient(135deg,#fff,var(--no-bg))}
+.status-emoji{font-size:3rem;margin-bottom:.5rem;display:block;animation:bounce 2s infinite}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.status-label{font-size:.85rem;color:var(--txt2);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.status-text{font-size:1.5rem;font-weight:800;margin:.25rem 0}
+.status-text.with-text{color:var(--yes)}
+.status-text.without-text{color:var(--no)}
+.status-dates{font-size:.8rem;color:var(--txt3);margin-top:.5rem}
+.status-countdown{margin-top:.75rem;padding:.5rem 1rem;border-radius:99px;display:inline-block;font-size:.8rem;font-weight:600}
+.status-card.with .status-countdown{background:var(--yes-bg);color:#065F46}
+.status-card.without .status-countdown{background:var(--no-bg);color:#92400E}
+
+/* ── Section ── */
+.section{margin-top:1.5rem}
+.section-title{font-size:1rem;font-weight:700;margin-bottom:.75rem;display:flex;align-items:center;gap:.5rem}
+.section-title span{font-size:1.1rem}
+
+/* ── Date Lookup ── */
+.lookup-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.25rem}
+.lookup-row{display:flex;gap:.5rem}
+.lookup-row input[type=date]{flex:1;padding:.65rem .75rem;border:2px solid var(--border);border-radius:10px;font-size:.95rem;font-family:var(--font);transition:border-color .2s;background:#fff}
+.lookup-row input[type=date]:focus{outline:none;border-color:var(--pri)}
+.btn{padding:.65rem 1.25rem;border:none;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--font)}
+.btn-pri{background:var(--pri);color:#fff}
+.btn-pri:hover{background:var(--pri-d);transform:translateY(-1px)}
+.btn-sm{padding:.5rem .75rem;font-size:.8rem;border-radius:8px}
+.lookup-result{margin-top:.75rem;padding:.75rem;border-radius:10px;text-align:center;font-weight:600;font-size:.9rem;display:none}
+.lookup-result.show{display:block}
+.lookup-result.with{background:var(--yes-bg);color:#065F46;border:1px solid var(--yes-border)}
+.lookup-result.without{background:var(--no-bg);color:#92400E;border:1px solid var(--no-border)}
+
+/* ── Calendar ── */
+.calendar-card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.25rem;overflow:hidden}
+.cal-nav{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
+.cal-nav button{background:none;border:2px solid var(--border);width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .2s;color:var(--txt)}
+.cal-nav button:hover{border-color:var(--pri);color:var(--pri)}
+.cal-month{font-weight:700;font-size:1rem}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-day-header{text-align:center;font-size:.7rem;font-weight:700;color:var(--txt3);text-transform:uppercase;padding:.25rem 0}
+.cal-day{text-align:center;padding:.45rem .1rem;border-radius:8px;font-size:.8rem;cursor:default;position:relative;transition:all .2s}
+.cal-day.empty{visibility:hidden}
+.cal-day.with-day{background:var(--yes-bg);color:#065F46;font-weight:600}
+.cal-day.without-day{background:var(--no-bg);color:#92400E;font-weight:600}
+.cal-day.today{box-shadow:inset 0 0 0 2px var(--pri);font-weight:800}
+.cal-legend{display:flex;gap:1rem;margin-top:.75rem;justify-content:center;flex-wrap:wrap}
+.cal-legend-item{display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--txt2)}
+.cal-legend-dot{width:12px;height:12px;border-radius:4px}
+
+/* ── Week List ── */
+.week-list{display:flex;flex-direction:column;gap:.5rem}
+.week-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:var(--card);border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.04);border-left:4px solid transparent;transition:transform .2s}
+.week-item.with{border-left-color:var(--yes)}
+.week-item.without{border-left-color:var(--no)}
+.week-item.current{transform:scale(1.02);box-shadow:0 4px 16px rgba(0,0,0,.08)}
+.week-item-icon{font-size:1.5rem}
+.week-item-info{flex:1}
+.week-item-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.week-item.with .week-item-label{color:var(--yes)}
+.week-item.without .week-item-label{color:var(--no)}
+.week-item-dates{font-size:.8rem;color:var(--txt2)}
+.week-item-badge{font-size:.65rem;background:var(--pri);color:#fff;padding:.2rem .5rem;border-radius:99px;font-weight:700}
+
+/* ── Settings ── */
+.settings-toggle{width:100%;background:var(--card);border:2px solid var(--border);border-radius:var(--radius);padding:1rem;cursor:pointer;display:flex;align-items:center;gap:.75rem;font-size:.9rem;font-weight:600;font-family:var(--font);transition:all .2s;color:var(--txt)}
+.settings-toggle:hover{border-color:var(--pri)}
+.settings-toggle span:first-child{font-size:1.2rem}
+.settings-toggle .arrow{margin-left:auto;transition:transform .3s}
+.settings-toggle.open .arrow{transform:rotate(180deg)}
+.settings-panel{display:none;background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:1.25rem;margin-top:.5rem}
+.settings-panel.show{display:block}
+
+/* Password overlay */
+.pw-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:1rem;display:none}
+.pw-overlay.show{display:flex}
+.pw-box{background:#fff;border-radius:var(--radius);padding:1.75rem;width:100%;max-width:340px;text-align:center}
+.pw-box h3{margin-bottom:.25rem;font-size:1.1rem}
+.pw-box p{font-size:.8rem;color:var(--txt2);margin-bottom:1rem}
+.pw-box input{width:100%;padding:.65rem;border:2px solid var(--border);border-radius:10px;font-size:.95rem;text-align:center;font-family:var(--font);margin-bottom:.75rem}
+.pw-box input:focus{outline:none;border-color:var(--pri)}
+.pw-error{color:#EF4444;font-size:.8rem;display:none;margin-bottom:.5rem}
+.pw-error.show{display:block}
+
+/* Settings form */
+.setting-group{margin-bottom:1rem}
+.setting-group label{display:block;font-size:.8rem;font-weight:600;color:var(--txt2);margin-bottom:.35rem}
+.setting-group input{width:100%;padding:.6rem .75rem;border:2px solid var(--border);border-radius:10px;font-size:.9rem;font-family:var(--font)}
+.setting-group input:focus{outline:none;border-color:var(--pri)}
+.setting-group .hint{font-size:.7rem;color:var(--txt3);margin-top:.25rem}
+.settings-actions{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem}
+.btn-outline{background:none;border:2px solid var(--border);color:var(--txt)}
+.btn-outline:hover{border-color:var(--pri);color:var(--pri)}
+.btn-danger{background:#FEE2E2;color:#DC2626;border:1px solid #FECACA}
+.btn-danger:hover{background:#FECACA}
+.btn-success{background:var(--yes);color:#fff}
+.btn-success:hover{background:#059669}
+
+/* Sync section */
+.sync-section{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--border)}
+.sync-section h4{font-size:.85rem;margin-bottom:.5rem;display:flex;align-items:center;gap:.4rem}
+.sync-btns{display:flex;gap:.5rem;flex-wrap:wrap}
+.sync-code{margin-top:.75rem;width:100%;padding:.5rem;border:2px solid var(--border);border-radius:8px;font-size:.7rem;font-family:monospace;resize:vertical;min-height:60px}
+
+/* Toast */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(100px);background:var(--txt);color:#fff;padding:.65rem 1.25rem;border-radius:99px;font-size:.85rem;font-weight:600;z-index:200;transition:transform .3s ease;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Footer */
+.footer{text-align:center;margin-top:2rem;padding:1rem;font-size:.75rem;color:var(--txt3)}
+
+/* Responsive */
+@media(max-width:380px){
+  .header h1{font-size:1.3rem}
+  .status-text{font-size:1.25rem}
+  .cal-day{padding:.3rem .05rem;font-size:.7rem}
+}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <span class="header-icon">📅</span>
+  <h1 id="headerTitle">Semanas do Gui</h1>
+  <p>Gestão de semanas alternadas</p>
+</div>
+
+<!-- Main Content -->
+<div class="container">
+
+  <!-- Status Card -->
+  <div class="status-card" id="statusCard">
+    <span class="status-emoji" id="statusEmoji">🏠</span>
+    <div class="status-label">Esta semana</div>
+    <div class="status-text" id="statusText">A carregar...</div>
+    <div class="status-dates" id="statusDates"></div>
+    <div class="status-countdown" id="statusCountdown"></div>
+  </div>
+
+  <!-- Date Lookup -->
+  <div class="section">
+    <div class="section-title"><span>🔍</span> Consultar data</div>
+    <div class="lookup-card">
+      <div class="lookup-row">
+        <input type="date" id="lookupDate">
+        <button class="btn btn-pri" onclick="lookupDate()">Verificar</button>
+      </div>
+      <div class="lookup-result" id="lookupResult"></div>
+    </div>
+  </div>
+
+  <!-- Calendar -->
+  <div class="section">
+    <div class="section-title"><span>📆</span> Calendário</div>
+    <div class="calendar-card">
+      <div class="cal-nav">
+        <button onclick="changeMonth(-1)">◀</button>
+        <span class="cal-month" id="calMonth"></span>
+        <button onclick="changeMonth(1)">▶</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--yes-bg);border:1px solid var(--yes-border)"></div><span id="legendWith">Com Gui</span></div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:var(--no-bg);border:1px solid var(--no-border)"></div><span id="legendWithout">Sem Gui</span></div>
+        <div class="cal-legend-item"><div class="cal-legend-dot" style="background:#fff;border:2px solid var(--pri)"></div>Hoje</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Upcoming Weeks -->
+  <div class="section">
+    <div class="section-title"><span>📋</span> Próximas semanas</div>
+    <div class="week-list" id="weekList"></div>
+  </div>
+
+  <!-- Settings -->
+  <div class="section">
+    <div class="section-title"><span>⚙️</span> Configurações</div>
+    <button class="settings-toggle" id="settingsToggle" onclick="toggleSettings()">
+      <span>🔒</span> Abrir definições
+      <span class="arrow">▼</span>
+    </button>
+    <div class="settings-panel" id="settingsPanel"></div>
+  </div>
+
+</div>
+
+<!-- Password Modal -->
+<div class="pw-overlay" id="pwOverlay">
+  <div class="pw-box">
+    <h3>🔒 Área protegida</h3>
+    <p>Introduza a password para aceder às definições</p>
+    <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="pw-error" id="pwError">Password incorreta</div>
+    <div style="display:flex;gap:.5rem">
+      <button class="btn btn-outline" style="flex:1" onclick="closePwOverlay()">Cancelar</button>
+      <button class="btn btn-pri" style="flex:1" onclick="checkPassword()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Hidden file input -->
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<div class="footer">Feito com ❤️ &bull; Semanas Alternadas</div>
+
+<script>
+/* ══════════════════════════════════════
+   CONFIG & STATE
+   ══════════════════════════════════════ */
+const DEFAULTS = {
+  childName: 'Gui',
+  referenceDate: '2025-05-09', // a known Friday that is "com Gui"
+  password: '1234'
+};
+
+let config = loadConfig();
+let calDate = new Date();
+let settingsUnlocked = false;
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem('semanas_config');
+    if (raw) {
+      const c = JSON.parse(raw);
+      return { ...DEFAULTS, ...c };
+    }
+  } catch(e) {}
+  return { ...DEFAULTS };
+}
+
+function saveConfig() {
+  localStorage.setItem('semanas_config', JSON.stringify(config));
+}
+
+/* ══════════════════════════════════════
+   CORE LOGIC
+   ══════════════════════════════════════ */
+function getFriday(d) {
+  const date = new Date(d);
+  const day = date.getDay(); // 0=dom, 1=seg, ..., 5=sex, 6=sab
+  const diff = (day + 2) % 7; // sex=0, sab=1, dom=2, seg=3, ter=4, qua=5, qui=6
+  date.setDate(date.getDate() - diff);
+  date.setHours(0,0,0,0);
+  return date;
+}
+
+function isWeekWith(date) {
+  const refFriday = getFriday(new Date(config.referenceDate + 'T00:00:00'));
+  const targetFriday = getFriday(date);
+  const diffMs = targetFriday.getTime() - refFriday.getTime();
+  const diffWeeks = Math.round(diffMs / (7 * 24 * 60 * 60 * 1000));
+  // reference date is "com", so even diff = com, odd = sem
+  return diffWeeks % 2 === 0;
+}
+
+function formatDate(d) {
+  return d.toLocaleDateString('pt-PT', { day:'numeric', month:'short' });
+}
+
+function formatDateFull(d) {
+  return d.toLocaleDateString('pt-PT', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+
+function getWeekRange(d) {
+  const fri = getFriday(d);
+  const thu = new Date(fri);
+  thu.setDate(thu.getDate() + 6);
+  return { start: fri, end: thu };
+}
+
+/* ══════════════════════════════════════
+   RENDER: STATUS CARD
+   ══════════════════════════════════════ */
+function renderStatus() {
+  const now = new Date();
+  const withGui = isWeekWith(now);
+  const card = document.getElementById('statusCard');
+  const range = getWeekRange(now);
+  const name = config.childName;
+
+  card.className = 'status-card ' + (withGui ? 'with' : 'without');
+  document.getElementById('statusEmoji').textContent = withGui ? '🥰' : '💭';
+  
+  const statusText = document.getElementById('statusText');
+  statusText.textContent = withGui ? `Semana com ${name}` : `Semana sem ${name}`;
+  statusText.className = 'status-text ' + (withGui ? 'with-text' : 'without-text');
+
+  document.getElementById('statusDates').textContent = 
+    `${formatDate(range.start)} — ${formatDate(range.end)}`;
+
+  // Countdown
+  const nextFriday = getFriday(now);
+  nextFriday.setDate(nextFriday.getDate() + 7);
+  const daysLeft = Math.ceil((nextFriday.getTime() - now.getTime()) / (24*60*60*1000));
+  const nextWith = !withGui;
+  const cd = document.getElementById('statusCountdown');
+  if (nextWith) {
+    cd.textContent = `⏳ ${daysLeft} dia${daysLeft!==1?'s':''} até a semana com ${name}`;
+  } else {
+    cd.textContent = `⏳ ${daysLeft} dia${daysLeft!==1?'s':''} até mudar`;
+  }
+
+  // Update page title
+  document.getElementById('headerTitle').textContent = `Semanas do ${name}`;
+  document.title = `Semanas do ${name}`;
+}
+
+/* ══════════════════════════════════════
+   RENDER: DATE LOOKUP
+   ══════════════════════════════════════ */
+function lookupDate() {
+  const input = document.getElementById('lookupDate');
+  if (!input.value) return;
+  const date = new Date(input.value + 'T00:00:00');
+  const withGui = isWeekWith(date);
+  const name = config.childName;
+  const range = getWeekRange(date);
+  const el = document.getElementById('lookupResult');
+  el.className = 'lookup-result show ' + (withGui ? 'with' : 'without');
+  el.innerHTML = `${withGui ? '✅' : '📅'} ${formatDateFull(date)}<br>
+    <strong>${withGui ? `Semana com ${name}` : `Semana sem ${name}`}</strong><br>
+    <small>${formatDate(range.start)} — ${formatDate(range.end)}</small>`;
+}
+
+/* ══════════════════════════════════════
+   RENDER: CALENDAR
+   ══════════════════════════════════════ */
+function renderCalendar() {
+  const year = calDate.getFullYear();
+  const month = calDate.getMonth();
+  const name = config.childName;
+  
+  document.getElementById('calMonth').textContent = 
+    new Date(year, month).toLocaleDateString('pt-PT', { month:'long', year:'numeric' });
+
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  // Headers
+  const days = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+  days.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-header';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  // First day of month
+  const firstDay = new Date(year, month, 1);
+  let startDay = firstDay.getDay();
+  startDay = startDay === 0 ? 6 : startDay - 1; // Monday = 0
+
+  // Empty cells
+  for (let i = 0; i < startDay; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day empty';
+    grid.appendChild(el);
+  }
+
+  // Days
+  const today = new Date();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = new Date(year, month, d);
+    const el = document.createElement('div');
+    const withGui = isWeekWith(date);
+    let cls = 'cal-day ' + (withGui ? 'with-day' : 'without-day');
+    if (date.toDateString() === today.toDateString()) cls += ' today';
+    el.className = cls;
+    el.textContent = d;
+    el.title = withGui ? `Com ${name}` : `Sem ${name}`;
+    grid.appendChild(el);
+  }
+
+  // Legend
+  document.getElementById('legendWith').textContent = `Com ${name}`;
+  document.getElementById('legendWithout').textContent = `Sem ${name}`;
+}
+
+function changeMonth(delta) {
+  calDate.setMonth(calDate.getMonth() + delta);
+  renderCalendar();
+}
+
+/* ══════════════════════════════════════
+   RENDER: WEEK LIST
+   ══════════════════════════════════════ */
+function renderWeekList() {
+  const list = document.getElementById('weekList');
+  list.innerHTML = '';
+  const now = new Date();
+  const currentFriday = getFriday(now);
+  const name = config.childName;
+
+  for (let i = -1; i < 8; i++) {
+    const friday = new Date(currentFriday);
+    friday.setDate(friday.getDate() + i * 7);
+    const thursday = new Date(friday);
+    thursday.setDate(thursday.getDate() + 6);
+    const withGui = isWeekWith(friday);
+    const isCurrent = i === 0;
+
+    const item = document.createElement('div');
+    item.className = `week-item ${withGui ? 'with' : 'without'} ${isCurrent ? 'current' : ''}`;
+    item.innerHTML = `
+      <div class="week-item-icon">${withGui ? '🥰' : '💭'}</div>
+      <div class="week-item-info">
+        <div class="week-item-label">${withGui ? `Com ${name}` : `Sem ${name}`}</div>
+        <div class="week-item-dates">${formatDate(friday)} — ${formatDate(thursday)}</div>
+      </div>
+      ${isCurrent ? '<div class="week-item-badge">AGORA</div>' : i === -1 ? '<div class="week-item-badge" style="background:var(--txt3)">ANTERIOR</div>' : ''}
+    `;
+    list.appendChild(item);
+  }
+}
+
+/* ══════════════════════════════════════
+   SETTINGS
+   ══════════════════════════════════════ */
+function toggleSettings() {
+  if (!settingsUnlocked) {
+    document.getElementById('pwOverlay').classList.add('show');
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwError').classList.remove('show');
+    setTimeout(() => document.getElementById('pwInput').focus(), 100);
+    return;
+  }
+  const panel = document.getElementById('settingsPanel');
+  const btn = document.getElementById('settingsToggle');
+  const isOpen = panel.classList.contains('show');
+  panel.classList.toggle('show');
+  btn.classList.toggle('open');
+  btn.querySelector('span:first-child').textContent = isOpen ? '🔒' : '🔓';
+  if (!isOpen) renderSettingsPanel();
+}
+
+function closePwOverlay() {
+  document.getElementById('pwOverlay').classList.remove('show');
+}
+
+function checkPassword() {
+  const input = document.getElementById('pwInput').value;
+  if (input === config.password) {
+    settingsUnlocked = true;
+    closePwOverlay();
+    toggleSettings();
+  } else {
+    document.getElementById('pwError').classList.add('show');
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+function renderSettingsPanel() {
+  const panel = document.getElementById('settingsPanel');
+  panel.innerHTML = `
+    <div class="setting-group">
+      <label>👶 Nome da criança</label>
+      <input type="text" id="settingName" value="${config.childName}" placeholder="Nome">
+    </div>
+    <div class="setting-group">
+      <label>📅 Data de referência (uma sexta-feira "com ${config.childName}")</label>
+      <input type="date" id="settingRefDate" value="${config.referenceDate}">
+      <div class="hint">Escolha uma sexta-feira de uma semana em que esteja com ${config.childName}</div>
+    </div>
+    <div class="setting-group">
+      <label>🔑 Alterar password</label>
+      <input type="password" id="settingPw" placeholder="Nova password (deixe vazio para manter)">
+    </div>
+    <div class="settings-actions">
+      <button class="btn btn-success" onclick="saveSettings()">💾 Guardar</button>
+      <button class="btn btn-outline btn-sm" onclick="settingsUnlocked=false;document.getElementById('settingsPanel').classList.remove('show');document.getElementById('settingsToggle').classList.remove('open');document.getElementById('settingsToggle').querySelector('span:first-child').textContent='🔒'">🔒 Bloquear</button>
+    </div>
+    <div class="sync-section">
+      <h4>🔄 Sincronizar entre dispositivos</h4>
+      <div class="sync-btns">
+        <button class="btn btn-outline btn-sm" onclick="exportConfig()">📤 Exportar</button>
+        <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">📥 Importar</button>
+      </div>
+      <textarea class="sync-code" id="syncCode" placeholder="O código de sincronização aparecerá aqui..." readonly></textarea>
+    </div>
+  `;
+}
+
+function saveSettings() {
+  const name = document.getElementById('settingName').value.trim();
+  const refDate = document.getElementById('settingRefDate').value;
+  const pw = document.getElementById('settingPw').value;
+
+  if (name) config.childName = name;
+  if (refDate) config.referenceDate = refDate;
+  if (pw) config.password = pw;
+
+  saveConfig();
+  renderAll();
+  renderSettingsPanel();
+  showToast('✅ Definições guardadas!');
+}
+
+/* ══════════════════════════════════════
+   IMPORT / EXPORT
+   ══════════════════════════════════════ */
+function exportConfig() {
+  const data = JSON.stringify(config);
+  const b64 = btoa(unescape(encodeURIComponent(data)));
+  document.getElementById('syncCode').value = b64;
+
+  // Also download as file
+  const blob = new Blob([data], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `semanas_${config.childName.toLowerCase()}_config.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('📤 Configuração exportada!');
+}
+
+function handleImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      config = { ...DEFAULTS, ...imported };
+      saveConfig();
+      renderAll();
+      if (settingsUnlocked) renderSettingsPanel();
+      showToast('📥 Configuração importada com sucesso!');
+    } catch(err) {
+      showToast('❌ Ficheiro inválido');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* ══════════════════════════════════════
+   TOAST
+   ══════════════════════════════════════ */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+/* ══════════════════════════════════════
+   INIT
+   ══════════════════════════════════════ */
+function renderAll() {
+  renderStatus();
+  renderCalendar();
+  renderWeekList();
+}
+
+// Set lookup date to today
+document.getElementById('lookupDate').valueAsDate = new Date();
+
+renderAll();
+
+// Close modal on background click
+document.getElementById('pwOverlay').addEventListener('click', function(e) {
+  if (e.target === this) closePwOverlay();
+});
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"f0f03d0605bf45f1a3b17cf7d5e6861f","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
